@@ -1,3 +1,4 @@
+
 import math
 import time
 
@@ -9,22 +10,31 @@ def distance(p1, p2):
 def closest_pair(points):
     start_time = time.perf_counter()
 
-    points = [(p[0], p[1], i) for i, p in enumerate(points)]
-
     if len(points) < 2:
         raise ValueError("At least two points are required.")
+
+    points = [(p[0], p[1], i) for i, p in enumerate(points)]
 
     points_x = sorted(points, key=lambda p: (p[0], p[1]))
     points_y = sorted(points, key=lambda p: (p[1], p[0]))
 
-    steps = []
+    events = []
     stats = {"recursive_calls": 0, "comparisons": 0}
 
-    def solve(px, py):
+    def get_coordinates(point_list):
+        return [(p[0], p[1]) for p in point_list]
+
+    def get_pair_coordinates(pair):
+        if pair is None:
+            return None
+        return (
+            (pair[0][0], pair[0][1]),
+            (pair[1][0], pair[1][1])
+        )
+
+    def solve(px, py, depth=0):
         stats["recursive_calls"] += 1
         n = len(px)
-
-        steps.append(f"Current subproblem contains {n} points.")
 
         if n <= 3:
             min_dist = float("inf")
@@ -39,10 +49,18 @@ def closest_pair(points):
                         min_dist = d
                         best_pair = (px[i], px[j])
 
-            steps.append(f"Base case: minimum distance = {min_dist:.4f}")
+            events.append({
+                "type": "base",
+                "title": "Base Case",
+                "explanation": f"Only {n} points remain. Compare every pair directly.",
+                "points": get_coordinates(px),
+                "closest_pair": get_pair_coordinates(best_pair),
+                "minimum_distance": min_dist,
+                "depth": depth
+            })
+
             return min_dist, best_pair
 
-        # Divide the points into left and right halves
         mid = n // 2
         mid_x = px[mid][0]
 
@@ -54,23 +72,41 @@ def closest_pair(points):
         left_y = [p for p in py if p[2] in left_ids]
         right_y = [p for p in py if p[2] not in left_ids]
 
-        steps.append("Divided points into left and right halves.")
+        events.append({
+            "type": "divide",
+            "title": "Divide",
+            "explanation": "Split the points into left and right halves using the vertical dividing line.",
+            "points": get_coordinates(px),
+            "left_points": get_coordinates(left_x),
+            "right_points": get_coordinates(right_x),
+            "mid_x": mid_x,
+            "depth": depth
+        })
 
-        # Find the closest pair in both halves
-        d1, pair1 = solve(left_x, left_y)
-        d2, pair2 = solve(right_x, right_y)
+        d1, pair1 = solve(left_x, left_y, depth + 1)
+        d2, pair2 = solve(right_x, right_y, depth + 1)
 
         if d1 <= d2:
             min_dist, best_pair = d1, pair1
         else:
             min_dist, best_pair = d2, pair2
 
-        steps.append(f"Best distance from halves = {min_dist:.4f}")
+        strip = [
+            p for p in py
+            if abs(p[0] - mid_x) < min_dist
+        ]
 
-        # Check points close to the dividing line
-        strip = [p for p in py if abs(p[0] - mid_x) < min_dist]
-
-        steps.append(f"Checking the middle strip containing {len(strip)} points.")
+        events.append({
+            "type": "strip",
+            "title": "Check the Middle Strip",
+            "explanation": "Check points near the dividing line because a closer pair may cross between the two halves.",
+            "points": get_coordinates(px),
+            "strip_points": get_coordinates(strip),
+            "mid_x": mid_x,
+            "closest_pair": get_pair_coordinates(best_pair),
+            "minimum_distance": min_dist,
+            "depth": depth
+        })
 
         for i in range(len(strip)):
             for j in range(i + 1, min(i + 8, len(strip))):
@@ -84,7 +120,17 @@ def closest_pair(points):
                     min_dist = d
                     best_pair = (strip[i], strip[j])
 
-        steps.append(f"Combined result: minimum distance = {min_dist:.4f}")
+        events.append({
+            "type": "combine",
+            "title": "Combine",
+            "explanation": "Compare the middle-strip points with the best pair found so far and keep the smallest distance.",
+            "points": get_coordinates(px),
+            "strip_points": get_coordinates(strip),
+            "mid_x": mid_x,
+            "closest_pair": get_pair_coordinates(best_pair),
+            "minimum_distance": min_dist,
+            "depth": depth
+        })
 
         return min_dist, best_pair
 
@@ -93,18 +139,13 @@ def closest_pair(points):
     end_time = time.perf_counter()
 
     result = {
-        "closest_points": (
-            (pair[0][0], pair[0][1]),
-            (pair[1][0], pair[1][1])
-        ),
+        "closest_points": get_pair_coordinates(pair),
         "minimum_distance": min_dist,
         "recursive_calls": stats["recursive_calls"],
         "distance_comparisons": stats["comparisons"]
     }
 
-    execution_time = end_time - start_time
-
-    return result, execution_time, steps
+    return result, end_time - start_time, events
 
 
 if __name__ == "__main__":
@@ -119,7 +160,7 @@ if __name__ == "__main__":
         x, y = map(float, input(f"Enter point {i + 1} (x y): ").split())
         points.append((x, y))
 
-    result, execution_time, steps = closest_pair(points)
+    result, execution_time, events = closest_pair(points)
 
     print("\nClosest Pair Results")
     print("--------------------")
@@ -128,7 +169,4 @@ if __name__ == "__main__":
     print("Recursive Calls:", result["recursive_calls"])
     print("Distance Comparisons:", result["distance_comparisons"])
     print("Execution Time:", execution_time, "seconds")
-
-    print("\nAlgorithm Working")
-    for step in steps:
-        print(step)
+    print("Visualization Steps:", len(events))
