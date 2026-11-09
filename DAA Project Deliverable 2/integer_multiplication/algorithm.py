@@ -6,7 +6,6 @@ if hasattr(sys, "set_int_max_str_digits"):
 
 sys.setrecursionlimit(10000)
 
-
 def schoolbook_multiply(x, y):
     """Classic O(n^2) digit-by-digit multiplication (baseline for comparison).
 
