@@ -1,7 +1,7 @@
-
 import streamlit as st
 
 from closest_pair_page import show_closest_pair_page
+from multiplication_page import show_multiplication_page
 
 st.set_page_config(
     page_title="Divide and Conquer Project",
@@ -19,7 +19,5 @@ page = st.sidebar.selectbox(
 
 if page == "Closest Pair of Points":
     show_closest_pair_page()
-
 elif page == "Integer Multiplication":
-    st.title("Integer Multiplication")
-    st.info("Integer Multiplication page will be added soon.")
+    show_multiplication_page()
